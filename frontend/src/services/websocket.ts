@@ -13,6 +13,7 @@ class WebSocketClient {
   private isExplicitlyClosed = false;
   private autonomousTimer: any = null;
   private isAutonomousActive = false;
+  private isConnectedStatus = false;
 
   constructor() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -115,6 +116,7 @@ class WebSocketClient {
 
   public subscribeStatus(handler: StatusHandler) {
     this.statusHandlers.add(handler);
+    handler(this.isConnectedStatus);
     return () => this.statusHandlers.delete(handler);
   }
 
@@ -141,6 +143,7 @@ class WebSocketClient {
   }
 
   private notifyStatus(status: boolean) {
+    this.isConnectedStatus = status;
     this.statusHandlers.forEach((handler) => handler(status));
   }
 }
