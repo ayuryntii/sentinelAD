@@ -79,11 +79,25 @@ class AutonomousEngine {
   public isolateIncident(id: number): boolean {
     const target = this.incidents.find(i => i.id === id);
     if (target) {
-      target.is_isolated = true;
-      target.resolved = true;
+      target.is_isolated = !target.is_isolated;
+      if (target.is_isolated) {
+        target.resolved = true;
+      }
       return true;
     }
     return false;
+  }
+
+  public isolateByIp(ip: string): boolean {
+    let affected = false;
+    this.incidents.forEach(i => {
+      if (i.source_ip === ip) {
+        i.is_isolated = true;
+        i.resolved = true;
+        affected = true;
+      }
+    });
+    return affected;
   }
 
   public clearAll(): void {

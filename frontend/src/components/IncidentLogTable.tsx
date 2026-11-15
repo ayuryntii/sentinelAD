@@ -55,6 +55,53 @@ export const IncidentLogTable: React.FC<IncidentLogTableProps> = ({
     }
   };
 
+  const handleExportCsv = () => {
+    try {
+      const headers = [
+        "ID Insiden",
+        "Waktu Insiden (WIB)",
+        "IP Penyerang (Source)",
+        "Target Pertahanan (Destination)",
+        "Protokol",
+        "Tipe Ancaman",
+        "Tingkat Keparahan",
+        "Skor Deviasi AI",
+        "Volume Paket",
+        "Status Resolusi",
+        "Status Isolasi IP",
+        "Rincian Analisis Forensik"
+      ];
+
+      const rows = safeIncidents.map((inc) => [
+        inc.id,
+        `"${inc.timestamp || new Date().toISOString()}"`,
+        `"${inc.source_ip}"`,
+        `"${inc.destination_ip}"`,
+        `"${inc.protocol}"`,
+        `"${inc.threat_type}"`,
+        `"${inc.severity}"`,
+        `"${(inc.anomaly_score * 100).toFixed(0)}%"`,
+        inc.packet_count,
+        inc.resolved ? "RESOLVED" : "ACTIVE",
+        inc.is_isolated ? "TERISOLASI" : "TIDAK",
+        `"${(inc.details || '').replace(/"/g, '""')}"`
+      ]);
+
+      const csvContent = "\uFEFF" + [headers.join(","), ...rows.map(r => r.join(","))].join("\r\n");
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `SentinelAD_Audit_Log_${new Date().toISOString().slice(0, 10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error("Gagal mengekspor CSV", e);
+    }
+  };
+
   const getSeverityBadge = (severity: string) => {
     switch (severity) {
       case 'CRITICAL':
@@ -100,15 +147,14 @@ export const IncidentLogTable: React.FC<IncidentLogTableProps> = ({
           </div>
 
           {/* Export CSV Button */}
-          <a
-            href={getExportCsvUrl()}
-            target="_blank"
-            rel="noreferrer"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors"
+          <button
+            onClick={handleExportCsv}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors cursor-pointer"
+            title="Unduh laporan audit forensik insiden (.csv)"
           >
             <Download className="w-3.5 h-3.5 text-defense-accent" />
             <span>Ekspor CSV</span>
-          </a>
+          </button>
 
           {/* Clear Button */}
           <button

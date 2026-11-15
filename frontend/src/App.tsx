@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { ShieldCheck } from 'lucide-react';
 import { Header } from './components/Header';
 import { StatCards } from './components/StatCards';
 import { TrafficChart, TrafficDataPoint } from './components/TrafficChart';
@@ -9,7 +10,7 @@ import { AttackSimulationControl } from './components/AttackSimulationControl';
 import { GeoThreatMap } from './components/GeoThreatMap';
 import { ProtectedAssetsStatus } from './components/ProtectedAssetsStatus';
 import { wsClient } from './services/websocket';
-import { fetchIncidents, fetchOverviewStats, fetchProtectedAssets } from './services/api';
+import { fetchIncidents, fetchOverviewStats, fetchProtectedAssets, isolateByIp, stopAttackSimulation } from './services/api';
 import { TelemetryPayload, Incident, OverviewStats, AnomalyAnalysis, ProtectedAsset } from './types';
 
 export const App: React.FC = () => {
@@ -20,6 +21,24 @@ export const App: React.FC = () => {
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [severityFilter, setSeverityFilter] = useState<string>('ALL');
   const [dismissedAnomaly, setDismissedAnomaly] = useState<boolean>(false);
+  const [notification, setNotification] = useState<string | null>(null);
+
+  const showNotification = (msg: string) => {
+    setNotification(msg);
+    setTimeout(() => setNotification(null), 4500);
+  };
+
+  const handleIsolateFromAlert = async (ip: string) => {
+    try {
+      await isolateByIp(ip);
+      await stopAttackSimulation();
+      setDismissedAnomaly(true);
+      await loadData();
+      showNotification(`🛡️ Firewall Pussiberad: IP ${ip} berhasil diisolasi dari seluruh perimeter pertahanan!`);
+    } catch (e) {
+      console.error(e);
+    }
+  };
   const [protectedAssets, setProtectedAssets] = useState<ProtectedAsset[]>([
     { name: "Gateway Perimeter Pussiberad", ip: "10.10.20.1", status: "Aman", role: "Firewall & Ingress Filter", traffic_health: "Optimal" },
     { name: "Server Web Portal AD", ip: "10.10.20.80", status: "Aman", role: "Public Defense Service", traffic_health: "Optimal" },
@@ -110,6 +129,7 @@ export const App: React.FC = () => {
           sourceIp={telemetry?.dominant_src_ip || '192.168.1.188'}
           destIp={telemetry?.dominant_dst_ip || '10.10.20.1'}
           onDismiss={() => setDismissedAnomaly(true)}
+          onIsolate={handleIsolateFromAlert}
         />
       )}
 
@@ -160,6 +180,14 @@ export const App: React.FC = () => {
           </div>
         </div>
       </main>
+
+      {/* Toast Notification Pertahanan */}
+      {notification && (
+        <div className="fixed bottom-6 right-6 z-50 max-w-md px-4 py-3 rounded-xl bg-emerald-950/95 border border-emerald-500/80 text-emerald-300 font-mono text-xs flex items-center gap-3 shadow-[0_0_25px_rgba(16,185,129,0.35)] backdrop-blur animate-bounce-once">
+          <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0" />
+          <span>{notification}</span>
+        </div>
+      )}
 
       {/* Footer */}
       <footer className="border-t border-defense-border bg-defense-surface/60 py-4 px-6 text-center text-xs font-mono text-slate-500">

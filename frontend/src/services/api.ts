@@ -87,6 +87,11 @@ export const isolateIncident = async (incidentId: number) => {
   }
 };
 
+export const isolateByIp = async (ip: string) => {
+  autonomousEngine.isolateByIp(ip);
+  return { status: 'success', message: `IP ${ip} berhasil diisolasi dari perimeter pertahanan.` };
+};
+
 export const fetchProtectedAssets = async (): Promise<{ assets_monitored: number; assets: any[] }> => {
   if (isStandaloneCloud()) {
     return {

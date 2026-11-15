@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { AlertTriangle, ShieldX, Volume2, VolumeX, X, ShieldAlert } from 'lucide-react';
+import { Volume2, VolumeX, X, ShieldAlert, Lock, CheckCircle2 } from 'lucide-react';
 import { AnomalyAnalysis } from '../types';
 
 interface ThreatAlertModalProps {
@@ -7,15 +7,18 @@ interface ThreatAlertModalProps {
   sourceIp: string;
   destIp: string;
   onDismiss: () => void;
+  onIsolate?: (sourceIp: string) => void;
 }
 
 export const ThreatAlertModal: React.FC<ThreatAlertModalProps> = ({
   analysis,
   sourceIp,
   destIp,
-  onDismiss
+  onDismiss,
+  onIsolate
 }) => {
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
+  const [isIsolating, setIsIsolating] = useState<boolean>(false);
   const audioCtxRef = useRef<AudioContext | null>(null);
 
   // Sintesis Suara Sirene Taktis Web Audio API tanpa file eksternal
@@ -47,7 +50,7 @@ export const ThreatAlertModal: React.FC<ThreatAlertModalProps> = ({
 
       osc.start();
       osc.stop(ctx.currentTime + 0.3);
-    } catch (e) {
+    } catch {
       // Audio autoplay policy / blocked
     }
   };
@@ -63,6 +66,17 @@ export const ThreatAlertModal: React.FC<ThreatAlertModalProps> = ({
   }
 
   const isCritical = analysis.severity === 'CRITICAL';
+
+  const handleIsolateClick = () => {
+    setIsIsolating(true);
+    if (onIsolate) {
+      onIsolate(sourceIp);
+    }
+    setTimeout(() => {
+      setIsIsolating(false);
+      onDismiss();
+    }, 600);
+  };
 
   return (
     <div className="fixed inset-x-4 top-20 z-50 max-w-2xl mx-auto animate-bounce-once">
@@ -105,7 +119,7 @@ export const ThreatAlertModal: React.FC<ThreatAlertModalProps> = ({
             </button>
             <button
               onClick={onDismiss}
-              title="Acknowledge Alert"
+              title="Tutup Alert"
               className="p-1.5 rounded-md hover:bg-slate-800 text-slate-300 transition-colors"
             >
               <X className="w-5 h-5" />
@@ -130,20 +144,36 @@ export const ThreatAlertModal: React.FC<ThreatAlertModalProps> = ({
           {analysis.details}
         </div>
 
-        <div className="mt-4 flex items-center justify-between">
+        {/* Tombol Aksi Mitigasi */}
+        <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-slate-700/60">
           <span className="text-[11px] text-slate-400 font-mono">
             Rekomendasi: Blokir IP Sumber via Firewall IPTables Pussiberad
           </span>
-          <button
-            onClick={onDismiss}
-            className={`px-4 py-1.5 rounded text-xs font-mono font-bold uppercase tracking-wider transition-colors ${
-              isCritical 
-                ? 'bg-red-600 hover:bg-red-700 text-white' 
-                : 'bg-amber-600 hover:bg-amber-700 text-white'
-            }`}
-          >
-            Acknowledge & Mitigate
-          </button>
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <button
+              onClick={onDismiss}
+              className="px-3 py-1.5 rounded text-xs font-mono font-medium text-slate-300 hover:text-white hover:bg-slate-800/80 border border-slate-700 transition-colors"
+            >
+              Tutup Alert
+            </button>
+            <button
+              onClick={handleIsolateClick}
+              disabled={isIsolating}
+              className="flex items-center gap-1.5 px-4 py-1.5 rounded text-xs font-mono font-bold uppercase tracking-wider bg-red-600 hover:bg-red-700 text-white shadow-[0_0_15px_rgba(239,68,68,0.5)] transition-all cursor-pointer"
+            >
+              {isIsolating ? (
+                <>
+                  <CheckCircle2 className="w-3.5 h-3.5 text-white animate-spin" />
+                  <span>Memblokir IP...</span>
+                </>
+              ) : (
+                <>
+                  <Lock className="w-3.5 h-3.5 text-white" />
+                  <span>Isolasi IP Penyerang</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>
