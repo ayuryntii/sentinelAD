@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Download, Trash2, CheckCircle2, ShieldCheck, Filter, Lock, Unlock } from 'lucide-react';
+import { Download, Trash2, CheckCircle2, ShieldCheck, Filter, Lock, Unlock, FileSpreadsheet } from 'lucide-react';
 import { Incident } from '../types';
-import { resolveIncident, isolateIncident, clearAllIncidents, getExportCsvUrl } from '../services/api';
+import { resolveIncident, isolateIncident, clearAllIncidents } from '../services/api';
 
 interface IncidentLogTableProps {
   incidents: Incident[];
@@ -55,6 +55,154 @@ export const IncidentLogTable: React.FC<IncidentLogTableProps> = ({
     }
   };
 
+  // Ekspor Spreadsheet Excel Berwarna & Tabel Rapi Profesional
+  const handleExportExcel = () => {
+    try {
+      const nowStr = new Date().toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'medium' });
+
+      const rowsHtml = safeIncidents.map((inc, index) => {
+        const bgRow = index % 2 === 0 ? '#FFFFFF' : '#F8FAFC';
+
+        let sevBg = '#DBEAFE';
+        let sevColor = '#1E40AF';
+        if (inc.severity === 'CRITICAL') {
+          sevBg = '#FEE2E2';
+          sevColor = '#991B1B';
+        } else if (inc.severity === 'HIGH') {
+          sevBg = '#FFEDD5';
+          sevColor = '#9A3412';
+        } else if (inc.severity === 'MEDIUM') {
+          sevBg = '#FEF9C3';
+          sevColor = '#854D0E';
+        }
+
+        const isoBg = inc.is_isolated ? '#EF4444' : '#F1F5F9';
+        const isoColor = inc.is_isolated ? '#FFFFFF' : '#475569';
+        const isoText = inc.is_isolated ? 'TERISOLASI (BLOCKED)' : 'NORMAL';
+
+        const resBg = inc.resolved ? '#D1FAE5' : '#FEF3C7';
+        const resColor = inc.resolved ? '#065F46' : '#92400E';
+        const resText = inc.resolved ? 'SELESAI' : 'AKTIF';
+
+        return `
+          <tr style="background-color: ${bgRow};">
+            <td style="border: 1px solid #CBD5E1; text-align: center; font-weight: bold; font-family: monospace;">${inc.id}</td>
+            <td style="border: 1px solid #CBD5E1; font-family: monospace; white-space: nowrap;">${inc.timestamp || '-'}</td>
+            <td style="border: 1px solid #CBD5E1; color: #DC2626; font-weight: bold; font-family: monospace;">${inc.source_ip}</td>
+            <td style="border: 1px solid #CBD5E1; color: #059669; font-weight: bold; font-family: monospace;">${inc.destination_ip}</td>
+            <td style="border: 1px solid #CBD5E1; text-align: center; font-weight: bold;">${inc.protocol}</td>
+            <td style="border: 1px solid #CBD5E1; font-weight: bold;">${inc.threat_type}</td>
+            <td style="border: 1px solid #CBD5E1; background-color: ${sevBg}; color: ${sevColor}; font-weight: bold; text-align: center;">${inc.severity}</td>
+            <td style="border: 1px solid #CBD5E1; text-align: right; font-weight: bold;">${(inc.anomaly_score * 100).toFixed(0)}%</td>
+            <td style="border: 1px solid #CBD5E1; text-align: right;">${inc.packet_count}</td>
+            <td style="border: 1px solid #CBD5E1; background-color: ${resBg}; color: ${resColor}; font-weight: bold; text-align: center;">${resText}</td>
+            <td style="border: 1px solid #CBD5E1; background-color: ${isoBg}; color: ${isoColor}; font-weight: bold; text-align: center;">${isoText}</td>
+            <td style="border: 1px solid #CBD5E1; font-size: 9pt; color: #334155;">${inc.details || '-'}</td>
+          </tr>
+        `;
+      }).join('');
+
+      const excelHtml = `
+        <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+        <head>
+          <meta charset="utf-8">
+          <!--[if gte mso 9]>
+          <xml>
+            <x:ExcelWorkbook>
+              <x:ExcelWorksheets>
+                <x:ExcelWorksheet>
+                  <x:Name>Audit Insiden SentinelAD</x:Name>
+                  <x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions>
+                </x:ExcelWorksheet>
+              </x:ExcelWorksheets>
+            </x:ExcelWorkbook>
+          </xml>
+          <![endif]-->
+          <style>
+            body { font-family: 'Segoe UI', Arial, sans-serif; }
+            table { border-collapse: collapse; width: 100%; }
+            th {
+              background-color: #064E3B;
+              color: #FFFFFF;
+              font-weight: bold;
+              font-size: 10pt;
+              text-align: center;
+              padding: 10px 8px;
+              border: 1px solid #047857;
+            }
+            td {
+              font-size: 9.5pt;
+              padding: 7px 6px;
+              vertical-align: middle;
+            }
+          </style>
+        </head>
+        <body>
+          <table>
+            <tr>
+              <td colspan="12" style="background-color: #022C22; color: #10B981; font-size: 16pt; font-weight: bold; text-align: center; padding: 14px; border: 1px solid #047857;">
+                SENTINELAD | PUSSIBERAD TNI AD - KARTIKA CYBER HACKATHON 2026
+              </td>
+            </tr>
+            <tr>
+              <td colspan="12" style="background-color: #064E3B; color: #E2E8F0; font-size: 11pt; text-align: center; padding: 6px; border: 1px solid #047857;">
+                LAPORAN RESMI AUDIT FORENSIK SIBER & REKAM ANOMALI JARINGAN
+              </td>
+            </tr>
+            <tr>
+              <td colspan="3" style="background-color: #F1F5F9; font-weight: bold; border: 1px solid #CBD5E1; padding: 6px;">Waktu Ekspor:</td>
+              <td colspan="3" style="border: 1px solid #CBD5E1; padding: 6px;">${nowStr}</td>
+              <td colspan="3" style="background-color: #F1F5F9; font-weight: bold; border: 1px solid #CBD5E1; padding: 6px;">Klasifikasi Keamanan:</td>
+              <td colspan="3" style="border: 1px solid #CBD5E1; color: #DC2626; font-weight: bold; padding: 6px;">TERBATAS / DEFENSIVE SHIELD</td>
+            </tr>
+            <tr>
+              <td colspan="3" style="background-color: #F1F5F9; font-weight: bold; border: 1px solid #CBD5E1; padding: 6px;">Unit Pengembang:</td>
+              <td colspan="3" style="border: 1px solid #CBD5E1; padding: 6px;">Tim AyySec (Pussiberad TNI AD)</td>
+              <td colspan="3" style="background-color: #F1F5F9; font-weight: bold; border: 1px solid #CBD5E1; padding: 6px;">Total Insiden Terekam:</td>
+              <td colspan="3" style="border: 1px solid #CBD5E1; font-weight: bold; padding: 6px;">${safeIncidents.length} Catatan Insiden</td>
+            </tr>
+            <tr>
+              <td colspan="12" style="height: 10px;"></td>
+            </tr>
+            <thead>
+              <tr>
+                <th style="width: 50px;">ID</th>
+                <th style="width: 150px;">WAKTU (WIB)</th>
+                <th style="width: 140px;">IP PENYERANG (SRC)</th>
+                <th style="width: 140px;">TARGET (DST)</th>
+                <th style="width: 80px;">PROTOKOL</th>
+                <th style="width: 200px;">TIPE ANCAMAN</th>
+                <th style="width: 110px;">KEPARAHAN</th>
+                <th style="width: 85px;">SKOR AI</th>
+                <th style="width: 85px;">PAKET</th>
+                <th style="width: 95px;">STATUS</th>
+                <th style="width: 120px;">FIREWALL ISOLASI</th>
+                <th style="width: 320px;">ANALISIS FORENSIK PUSSIBERAD</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
+        </body>
+        </html>
+      `;
+
+      const blob = new Blob([excelHtml], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `SentinelAD_Laporan_Audit_Forensik_${new Date().toISOString().slice(0, 10)}.xls`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error('Gagal mengekspor laporan Excel', e);
+    }
+  };
+
+  // Ekspor CSV Standar
   const handleExportCsv = () => {
     try {
       const headers = [
@@ -130,36 +278,58 @@ export const IncidentLogTable: React.FC<IncidentLogTableProps> = ({
         </div>
 
         <div className="flex flex-wrap items-center gap-2 font-mono text-xs">
-          {/* Severity Filter */}
-          <div className="flex items-center gap-1.5 bg-slate-900 px-2.5 py-1.5 rounded-lg border border-defense-border">
-            <Filter className="w-3.5 h-3.5 text-slate-400" />
+          {/* Severity Filter - Warna Font Jelas 100% */}
+          <div className="flex items-center gap-1.5 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-700 shadow-sm">
+            <Filter className="w-3.5 h-3.5 text-defense-accent" />
             <select
               value={severityFilter}
               onChange={(e) => onFilterChange(e.target.value)}
-              className="bg-transparent text-slate-200 outline-none cursor-pointer"
+              className="bg-slate-900 text-slate-100 font-mono text-xs outline-none cursor-pointer border-none font-semibold"
+              style={{ backgroundColor: '#0f172a', color: '#f8fafc' }}
             >
-              <option value="ALL">Semua Tingkat Keparahan</option>
-              <option value="CRITICAL">CRITICAL</option>
-              <option value="HIGH">HIGH</option>
-              <option value="MEDIUM">MEDIUM</option>
-              <option value="LOW">LOW</option>
+              <option value="ALL" style={{ backgroundColor: '#0f172a', color: '#f8fafc' }} className="py-1">
+                Semua Tingkat Keparahan
+              </option>
+              <option value="CRITICAL" style={{ backgroundColor: '#0f172a', color: '#f87171', fontWeight: 'bold' }} className="py-1">
+                🔴 CRITICAL
+              </option>
+              <option value="HIGH" style={{ backgroundColor: '#0f172a', color: '#fb923c', fontWeight: 'bold' }} className="py-1">
+                🟠 HIGH
+              </option>
+              <option value="MEDIUM" style={{ backgroundColor: '#0f172a', color: '#facc15' }} className="py-1">
+                🟡 MEDIUM
+              </option>
+              <option value="LOW" style={{ backgroundColor: '#0f172a', color: '#60a5fa' }} className="py-1">
+                🔵 LOW
+              </option>
             </select>
           </div>
+
+          {/* Export Excel (Berwarna & Rapi) */}
+          <button
+            onClick={handleExportExcel}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-950/60 hover:bg-emerald-900/80 text-emerald-300 border border-emerald-600/50 transition-all cursor-pointer font-semibold shadow-sm"
+            title="Unduh laporan audit forensik resmi (.xls) dengan tabel dan warna lengkap"
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Ekspor Excel (.xls)</span>
+          </button>
 
           {/* Export CSV Button */}
           <button
             onClick={handleExportCsv}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors cursor-pointer"
-            title="Unduh laporan audit forensik insiden (.csv)"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors cursor-pointer"
+            title="Unduh data teks mentah (.csv)"
           >
-            <Download className="w-3.5 h-3.5 text-defense-accent" />
-            <span>Ekspor CSV</span>
+            <Download className="w-3.5 h-3.5 text-slate-400" />
+            <span>CSV</span>
           </button>
 
           {/* Clear Button */}
           <button
             onClick={handleClear}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-950/40 hover:bg-red-900/60 text-red-300 border border-red-800/60 transition-colors"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-red-950/30 hover:bg-red-900/50 text-red-400 border border-red-800/50 transition-colors cursor-pointer"
+            title="Bersihkan riwayat log"
           >
             <Trash2 className="w-3.5 h-3.5" />
             <span>Bersihkan</span>
@@ -172,7 +342,7 @@ export const IncidentLogTable: React.FC<IncidentLogTableProps> = ({
         <table className="w-full text-left font-mono text-xs">
           <thead>
             <tr className="border-b border-defense-border text-slate-400">
-              <th className="py-2.5 px-3">WAKTU (UTC)</th>
+              <th className="py-2.5 px-3">WAKTU (WIB)</th>
               <th className="py-2.5 px-3">IP PENYERANG (SRC)</th>
               <th className="py-2.5 px-3">TARGET (DST)</th>
               <th className="py-2.5 px-3">PROTOKOL</th>
