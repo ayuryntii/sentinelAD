@@ -6,7 +6,7 @@ echo    Pussiberad TNI AD ^| Tim AyySec
 echo ========================================================
 echo.
 echo [1/2] Menjalankan SentinelAD Server (Backend + Frontend)...
-start "SentinelAD Server" cmd /k "cd /d "%~dp0\backend" && .venv\Scripts\python.exe run.py"
+start /min "SentinelAD Server" cmd /k "cd /d "%~dp0\backend" && .venv\Scripts\python.exe run.py"
 
 echo Menunggu server siap...
 timeout /t 4 /nobreak >nul
