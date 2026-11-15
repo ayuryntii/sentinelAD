@@ -7,6 +7,7 @@ interface ProtectedAssetsStatusProps {
 }
 
 export const ProtectedAssetsStatus: React.FC<ProtectedAssetsStatusProps> = ({ assets }) => {
+  const safeAssets = Array.isArray(assets) ? assets : [];
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'Diserang':
@@ -49,7 +50,7 @@ export const ProtectedAssetsStatus: React.FC<ProtectedAssetsStatusProps> = ({ as
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-4">
-        {assets.map((asset, idx) => (
+        {safeAssets.map((asset, idx) => (
           <div
             key={idx}
             className={`p-3 rounded-lg border transition-all ${

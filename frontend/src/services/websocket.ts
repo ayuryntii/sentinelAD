@@ -26,12 +26,24 @@ class WebSocketClient {
   public connect() {
     this.isExplicitlyClosed = false;
 
-    // Start autonomous simulation quickly (after 1s) if WS cannot connect immediately
+    // Check if running on Vercel or cloud static hosting without backend WebSocket
+    const isStandaloneCloud = typeof window !== 'undefined' && (
+      window.location.hostname.includes('vercel.app') || 
+      window.location.hostname.includes('github.io') ||
+      window.location.hostname.includes('pages.dev')
+    );
+
+    if (isStandaloneCloud) {
+      this.startAutonomousSimulation();
+      return;
+    }
+
+    // Start autonomous simulation after 1.5s if WS cannot connect
     const fallbackTimeout = setTimeout(() => {
       if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
         this.startAutonomousSimulation();
       }
-    }, 1200);
+    }, 1500);
 
     try {
       this.ws = new WebSocket(this.url);
@@ -47,7 +59,7 @@ class WebSocketClient {
           const data: TelemetryPayload = JSON.parse(event.data);
           this.notifyMessage(data);
         } catch (err) {
-          console.error('Failed to parse WS payload', err);
+          console.error('Gagal parsing pesan WebSocket', err);
         }
       };
 
@@ -60,7 +72,11 @@ class WebSocketClient {
 
       this.ws.onerror = () => {
         this.startAutonomousSimulation();
-        this.ws?.close();
+        try {
+          this.ws?.close();
+        } catch {
+          // Abaikan
+        }
       };
     } catch {
       this.startAutonomousSimulation();
@@ -71,7 +87,7 @@ class WebSocketClient {
   private startAutonomousSimulation() {
     if (this.isAutonomousActive) return;
     this.isAutonomousActive = true;
-    this.notifyStatus(true); // Status shows ONLINE with autonomous engine
+    this.notifyStatus(true); // Status shows ONLINE with autonomous telemetry
 
     if (this.autonomousTimer) clearInterval(this.autonomousTimer);
     // Send immediate initial payload
@@ -112,7 +128,11 @@ class WebSocketClient {
     this.isExplicitlyClosed = true;
     this.stopAutonomousSimulation();
     if (this.ws) {
-      this.ws.close();
+      try {
+        this.ws.close();
+      } catch {
+        // Abaikan
+      }
     }
   }
 

@@ -16,6 +16,7 @@ export const IncidentLogTable: React.FC<IncidentLogTableProps> = ({
   severityFilter,
   onFilterChange
 }) => {
+  const safeIncidents = Array.isArray(incidents) ? incidents : [];
   const [resolvingId, setResolvingId] = useState<number | null>(null);
   const [isolatingId, setIsolatingId] = useState<number | null>(null);
 
@@ -136,14 +137,14 @@ export const IncidentLogTable: React.FC<IncidentLogTableProps> = ({
             </tr>
           </thead>
           <tbody className="divide-y divide-defense-border/50 text-slate-300">
-            {incidents.length === 0 ? (
+            {safeIncidents.length === 0 ? (
               <tr>
                 <td colSpan={8} className="py-8 text-center text-slate-500">
                   Tidak ada catatan insiden keamanan yang terdeteksi saat ini.
                 </td>
               </tr>
             ) : (
-              incidents.map((inc) => (
+              safeIncidents.map((inc) => (
                 <tr key={inc.id} className="hover:bg-slate-800/40 transition-colors">
                   <td className="py-2.5 px-3 text-slate-400 whitespace-nowrap">
                     {inc.timestamp ? new Date(inc.timestamp).toLocaleTimeString('id-ID') : '-'}
