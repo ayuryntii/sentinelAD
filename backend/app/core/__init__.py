@@ -1,0 +1,1 @@
+# SentinelAD Core Package
