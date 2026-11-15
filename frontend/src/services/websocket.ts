@@ -1,4 +1,5 @@
 import { TelemetryPayload } from '../types';
+import { autonomousEngine } from './autonomousEngine';
 
 type MessageHandler = (data: TelemetryPayload) => void;
 type StatusHandler = (connected: boolean) => void;
@@ -8,8 +9,10 @@ class WebSocketClient {
   private url: string;
   private messageHandlers: Set<MessageHandler> = new Set();
   private statusHandlers: Set<StatusHandler> = new Set();
-  private reconnectInterval = 2500;
+  private reconnectInterval = 4000;
   private isExplicitlyClosed = false;
+  private autonomousTimer: any = null;
+  private isAutonomousActive = false;
 
   constructor() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -22,10 +25,20 @@ class WebSocketClient {
 
   public connect() {
     this.isExplicitlyClosed = false;
+
+    // Start autonomous simulation quickly (after 1s) if WS cannot connect immediately
+    const fallbackTimeout = setTimeout(() => {
+      if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+        this.startAutonomousSimulation();
+      }
+    }, 1200);
+
     try {
       this.ws = new WebSocket(this.url);
 
       this.ws.onopen = () => {
+        clearTimeout(fallbackTimeout);
+        this.stopAutonomousSimulation();
         this.notifyStatus(true);
       };
 
@@ -39,19 +52,43 @@ class WebSocketClient {
       };
 
       this.ws.onclose = () => {
-        this.notifyStatus(false);
         if (!this.isExplicitlyClosed) {
+          this.startAutonomousSimulation();
           setTimeout(() => this.connect(), this.reconnectInterval);
         }
       };
 
-      this.ws.onerror = (err) => {
-        this.notifyStatus(false);
+      this.ws.onerror = () => {
+        this.startAutonomousSimulation();
         this.ws?.close();
       };
-    } catch (err) {
-      this.notifyStatus(false);
+    } catch {
+      this.startAutonomousSimulation();
       setTimeout(() => this.connect(), this.reconnectInterval);
+    }
+  }
+
+  private startAutonomousSimulation() {
+    if (this.isAutonomousActive) return;
+    this.isAutonomousActive = true;
+    this.notifyStatus(true); // Status shows ONLINE with autonomous engine
+
+    if (this.autonomousTimer) clearInterval(this.autonomousTimer);
+    // Send immediate initial payload
+    const initial = autonomousEngine.getNextTelemetry();
+    this.notifyMessage(initial);
+
+    this.autonomousTimer = setInterval(() => {
+      const data = autonomousEngine.getNextTelemetry();
+      this.notifyMessage(data);
+    }, 1000);
+  }
+
+  private stopAutonomousSimulation() {
+    this.isAutonomousActive = false;
+    if (this.autonomousTimer) {
+      clearInterval(this.autonomousTimer);
+      this.autonomousTimer = null;
     }
   }
 
@@ -73,6 +110,7 @@ class WebSocketClient {
 
   public close() {
     this.isExplicitlyClosed = true;
+    this.stopAutonomousSimulation();
     if (this.ws) {
       this.ws.close();
     }

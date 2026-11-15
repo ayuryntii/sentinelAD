@@ -50,6 +50,12 @@ lerna-debug.log*
 .vscode/
 .idea/
 *.swp
+
+# Binaries
+cloudflared.exe
+
+.idea/
+*.swp
 *.swo
 
 # OS
