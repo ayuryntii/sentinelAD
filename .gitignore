@@ -11,7 +11,7 @@ __pycache__/
 env/
 build/
 develop-eggs/
-dist/
+/dist/
 downloads/
 eggs/
 .eggs/
@@ -44,8 +44,7 @@ lerna-debug.log*
 .pnpm-debug.log*
 
 # Vite build
-frontend/dist/
-dist/
+/dist/
 
 # IDE
 .vscode/
@@ -56,3 +55,6 @@ dist/
 # OS
 .DS_Store
 Thumbs.db
+
+# Include frontend production build for cloud deployment
+!frontend/dist/**
